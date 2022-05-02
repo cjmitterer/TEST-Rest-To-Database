@@ -15,21 +15,21 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Telerik.DataSource;
 using Telerik.DataSource.Extensions;
+using SWARM.Server.Controllers;
 
-namespace SWARM.Server.Controllers.Crse
+namespace SWARM.Server.Controllers.Application
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CourseController : Controller
+    public class CourseController : SuperClassController
     {
-        protected readonly SWARMOracleContext _context;
-        protected readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CourseController(SWARMOracleContext context, IHttpContextAccessor httpContextAccessor)
+
+        public CourseController(SWARMOracleContext context, IHttpContextAccessor httpContextAccessor) : base(context, httpContextAccessor)
         {
-            this._context = context;
-            this._httpContextAccessor = httpContextAccessor;
+
         }
+
 
         [HttpGet]
         [Route("GetCourses")]
@@ -51,30 +51,67 @@ namespace SWARM.Server.Controllers.Crse
         [Route("DeleteCourse/{pCourseNo}")]
         public async Task<IActionResult> DeleteCourse(int pCourseNo)
         {
-            Course itmCourse = await _context.Courses.Where(x => x.CourseNo == pCourseNo).FirstOrDefaultAsync();
-            _context.Remove(itmCourse);
-            await _context.SaveChangesAsync();
-            return Ok();
+            return await base.DeleteCourse(pCourseNo);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] CourseDTO _CourseDTO)
+        [Route("PostCourse")]
+        public async Task<IActionResult> PostCourse([FromBody] CourseDTO _CourseDTO)
         {
+            return await ModifyOrInsertCourse(_CourseDTO, null);
+        }
+
+        [HttpPut]
+        [Route("PutCourse")]
+        public async Task<IActionResult> PutCourse([FromBody] CourseDTO _CourseDTO){
+            return await ModifyOrInsertCourse(_CourseDTO, _CourseDTO);
+        }
+
+
+        private async Task<IActionResult> ModifyOrInsertCourse(CourseDTO _CourseDTO, CourseDTO _CourseDTOOld){
+            if (_CourseDTOOld == null){
+                _CourseDTOOld = new CourseDTO();
+            }
+
             var trans = _context.Database.BeginTransaction();
             try
             {
-                var existCourse = await _context.Courses.Where(x => x.CourseNo == _CourseDTO.CourseNo).FirstOrDefaultAsync();
+                Course existCourse = await _context.Courses.Where(x => x.CourseNo == _CourseDTOOld.CourseNo).FirstOrDefaultAsync();
+
+                bool newC = false;
+
+                if (existCourse == null){
+                    existCourse = new Course();
+                    newC = true;
+                }
 
                 existCourse.Cost = _CourseDTO.Cost;
                 existCourse.Description = _CourseDTO.Description;
                 existCourse.Prerequisite = _CourseDTO.Prerequisite;
                 existCourse.PrerequisiteSchoolId = _CourseDTO.PrerequisiteSchoolId;
                 existCourse.SchoolId = _CourseDTO.SchoolId;
-                _context.Update(existCourse);
+                existCourse.CreatedBy = _CourseDTO.CreatedBy;
+                existCourse.CreatedDate = _CourseDTO.CreatedDate;
+                existCourse.ModifiedBy = _CourseDTO.ModifiedBy;
+                existCourse.ModifiedDate = _CourseDTO.ModifiedDate;
+
+
+                if (newC)
+                {
+                    _context.Courses.Add(existCourse);
+                }
+                else
+                {
+                    _context.Update(existCourse);
+                }
+
                 await _context.SaveChangesAsync();
                 trans.Commit();
 
+
+
                 return Ok(_CourseDTO.CourseNo);
+
             }
             catch (Exception ex)
             {
@@ -112,7 +149,7 @@ namespace SWARM.Server.Controllers.Crse
 
                 DataSourceResult processedData = await queriableStates.ToDataSourceResultAsync(gridRequest);
 
-                if (gridRequest.Groups.Count > 0)
+                if (gridRequest.Groups != null && gridRequest.Groups.Count > 0)
                 {
                     // If there is grouping, use the field for grouped data
                     // The app must be able to serialize and deserialize it

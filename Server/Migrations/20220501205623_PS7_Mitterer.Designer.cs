@@ -10,14 +10,14 @@ using SWARM.Server.Data;
 namespace SWARM.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20220419153439_initial")]
-    partial class initial
+    [Migration("20220501205623_PS7_Mitterer")]
+    partial class PS7_Mitterer
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("C##LAB6")
+                .HasDefaultSchema("C##_UD_CJMITTER")
                 .HasAnnotation("Relational:Collation", "USING_NLS_COMP")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.15")
